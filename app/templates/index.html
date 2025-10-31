@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Coqui TTS — Выбор reference</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 850px; margin: 20px auto; padding: 0 15px; }
+        textarea { width: 100%; height: 140px; }
+        .hint { font-size: 0.9em; color: #555; margin: 5px 0 12px; }
+        .error { color: red; margin: 10px 0; padding: 10px; background: #ffecec; border-radius: 4px; }
+        .phrase { margin: 20px 0; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #007bff; }
+        .phrase audio { margin-top: 8px; }
+        select, input[type="file"], button { margin: 4px 0; padding: 6px; }
+        fieldset { border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        legend { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Синтез речи на русском (XTTS v2)</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <!-- Выбор или загрузка reference -->
+        <fieldset>
+            <legend>Аудиосэмпл (reference)</legend>
+            
+            <label>Выберите существующий:</label><br>
+            <select name="existing_reference" style="width:100%; margin-bottom:10px;">
+                <option value="">— Выберите reference —</option>
+                {% for filename, display in reference_list %}
+                <option value="{{ filename }}" {% if selected_ref == filename %}selected{% endif %}>
+                    {{ display }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <label>Или загрузите новый (WAV):</label><br>
+            <input type="file" name="new_reference" accept=".wav"><br>
+            <div class="hint">
+                Новые файлы сохраняются и появляются в списке.
+            </div>
+        </fieldset>
+
+        <!-- Тексты -->
+        <label>Тексты для озвучки (каждый абзац — отдельная фраза):</label><br>
+        <textarea name="text_block" placeholder="Привет! Это первая фраза.
+
+А это вторая."></textarea>
+        <div class="hint">
+            • Разделяйте фразы пустой строкой или <code>---</code>
+        </div>
+
+        <br>
+        <button type="submit">Сгенерировать речь</button>
+    </form>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if outputs %}
+    <h3>Результаты ({{ outputs|length }} фраз):</h3>
+    {% for item in outputs %}
+    <div class="phrase">
+        <strong>Фраза {{ item.index }}:</strong><br>
+        <em>{{ item.text }}</em><br>
+        <audio controls>
+            <source src="{{ url_for('main.serve_audio', filename=item.filename) }}" type="audio/wav">
+        </audio>
+    </div>
+    {% endfor %}
+    {% endif %}
+</body>
+</html>

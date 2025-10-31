@@ -1,5 +1,5 @@
 echo "Launching app"
 
-venv\Scripts\Activate
+.venv\Scripts\Activate
 
-python app/main.py
+python run.py
