@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "Installing ffmpeg"
+sudo apt update && sudo apt install -y ffmpeg
+
 echo "Creating virtual environment"
 
 python3 -m venv .venv
