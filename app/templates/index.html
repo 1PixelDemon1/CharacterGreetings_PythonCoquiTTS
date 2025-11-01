@@ -2,29 +2,85 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Coqui TTS — Выбор reference</title>
+    <title>Coqui TTS — Синтез речи</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 850px; margin: 20px auto; padding: 0 15px; }
-        textarea { width: 100%; height: 140px; }
-        .hint { font-size: 0.9em; color: #555; margin: 5px 0 12px; }
-        .error { color: red; margin: 10px 0; padding: 10px; background: #ffecec; border-radius: 4px; }
-        .phrase { margin: 20px 0; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #007bff; }
-        .phrase audio { margin-top: 8px; }
-        select, input[type="file"], button { margin: 4px 0; padding: 6px; }
-        fieldset { border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin: 15px 0; }
-        legend { font-weight: bold; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            max-width: 850px;
+            margin: 20px auto;
+            padding: 0 15px;
+            line-height: 1.6;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        .hint {
+            font-size: 0.9em;
+            color: #555;
+            margin: 5px 0 12px;
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffecec;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 14px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #1976d2;
+        }
+        select, input[type="file"], button {
+            margin: 4px 0;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        fieldset {
+            border: 1px solid #ddd;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 18px 0;
+        }
+        legend {
+            font-weight: 600;
+            font-size: 1.1em;
+            padding: 0 6px;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        audio {
+            width: 100%;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <h2>Синтез речи на русском (XTTS v2)</h2>
 
     <form method="POST" enctype="multipart/form-data">
-        <!-- Выбор или загрузка reference -->
+        <!-- Reference -->
         <fieldset>
             <legend>Аудиосэмпл (reference)</legend>
-            
             <label>Выберите существующий:</label><br>
-            <select name="existing_reference" style="width:100%; margin-bottom:10px;">
+            <select name="existing_reference">
                 <option value="">— Выберите reference —</option>
                 {% for filename, display in reference_list %}
                 <option value="{{ filename }}" {% if selected_ref == filename %}selected{% endif %}>
@@ -33,23 +89,18 @@
                 {% endfor %}
             </select>
 
-            <label>Или загрузите новый (WAV):</label><br>
-            <input type="file" name="new_reference" accept=".wav"><br>
+            <label>Или загрузите новый (поддерживаются MP3, WAV, OGG, FLAC, M4A и др.):</label><br>
+            <input type="file" name="new_reference" accept="audio/*"><br>
             <div class="hint">
-                Новые файлы сохраняются и появляются в списке.
+                Любой аудиофайл будет автоматически конвертирован в подходящий формат.
             </div>
         </fieldset>
 
-        <!-- Тексты -->
-        <label>Тексты для озвучки (каждый абзац — отдельная фраза):</label><br>
-        <textarea name="text_block" placeholder="Привет! Это первая фраза.
+        <!-- Текст -->
+        <label>Текст для озвучки:</label><br>
+        <textarea name="text" placeholder="Введите текст на русском языке..."></textarea>
+        <br><br>
 
-А это вторая."></textarea>
-        <div class="hint">
-            • Разделяйте фразы пустой строкой или <code>---</code>
-        </div>
-
-        <br>
         <button type="submit">Сгенерировать речь</button>
     </form>
 
@@ -57,17 +108,14 @@
     <div class="error">{{ error }}</div>
     {% endif %}
 
-    {% if outputs %}
-    <h3>Результаты ({{ outputs|length }} фраз):</h3>
-    {% for item in outputs %}
-    <div class="phrase">
-        <strong>Фраза {{ item.index }}:</strong><br>
-        <em>{{ item.text }}</em><br>
+    {% if output_file %}
+    <div class="result">
+        <strong>Результат:</strong><br>
         <audio controls>
-            <source src="{{ url_for('main.serve_audio', filename=item.filename) }}" type="audio/wav">
+            <source src="{{ url_for('main.serve_audio', filename=output_file) }}" type="audio/wav">
+            Ваш браузер не поддерживает воспроизведение аудио.
         </audio>
     </div>
-    {% endfor %}
     {% endif %}
 </body>
 </html>
