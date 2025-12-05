@@ -6,24 +6,20 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            max-width: 850px;
+            max-width: 900px;
             margin: 20px auto;
             padding: 0 15px;
             line-height: 1.6;
         }
-        textarea {
+        textarea, input[type="file"] {
             width: 100%;
-            height: 120px;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 15px;
+            box-sizing: border-box;
         }
-        .hint {
-            font-size: 0.9em;
-            color: #555;
-            margin: 5px 0 12px;
-        }
+        .hint { font-size: 0.9em; color: #555; margin: 5px 0 12px; }
         .error {
             color: #d32f2f;
             background: #ffecec;
@@ -38,7 +34,7 @@
             border-radius: 6px;
             border-left: 3px solid #1976d2;
         }
-        select, input[type="file"], button {
+        select, button {
             margin: 4px 0;
             padding: 8px;
             width: 100%;
@@ -63,23 +59,64 @@
             font-size: 16px;
             cursor: pointer;
         }
-        button:hover {
-            background: #1565c0;
+        button:hover { background: #1565c0; }
+        audio { width: 100%; margin-top: 8px; }
+        .ref-actions { display: flex; gap: 8px; margin-top: 8px; }
+        .ref-actions button {
+            padding: 4px 8px;
+            font-size: 13px;
+            width: auto;
         }
-        audio {
-            width: 100%;
-            margin-top: 8px;
+        .rename-input {
+            width: 60% !important;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .reference-item {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #fafafa;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
     <h2>Синтез речи на русском (XTTS v2)</h2>
 
+    <fieldset>
+        <legend>Управление reference-файлами</legend>
+        {% if reference_list %}
+            {% for filename, display in reference_list %}
+            <div class="reference-item">
+                <strong>{{ display }}</strong> ({{ filename }})
+                <div class="ref-actions">
+                    <a href="{{ url_for('main.serve_reference', filename=filename) }}">
+                        <button type="button">Скачать</button>
+                    </a>
+                    <button type="button" onclick="renameReference('{{ filename }}')">Переименовать</button>
+                    <button type="button" onclick="updateReference('{{ filename }}')">Обновить</button>
+                </div>
+                <div id="rename-form-{{ filename }}" style="display:none; margin-top:8px;">
+                    <input type="text" class="rename-input" id="new-name-{{ filename }}" 
+                           value="{{ display }}" placeholder="Новое имя">
+                    <button type="button" onclick="doRename('{{ filename }}')">Сохранить</button>
+                    <button type="button" onclick="hideRenameForm('{{ filename }}')">Отмена</button>
+                </div>
+                <div id="update-form-{{ filename }}" style="display:none; margin-top:8px;">
+                    <input type="file" accept="audio/*" id="update-file-{{ filename }}">
+                    <button type="button" onclick="doUpdate('{{ filename }}')">Заменить</button>
+                    <button type="button" onclick="hideUpdateForm('{{ filename }}')">Отмена</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>Нет сохранённых reference-файлов.</p>
+        {% endif %}
+    </fieldset>
+
     <form method="POST" enctype="multipart/form-data">
-        <!-- Reference -->
         <fieldset>
             <legend>Аудиосэмпл (reference)</legend>
-            <label>Выберите существующий:</label><br>
             <select name="existing_reference">
                 <option value="">— Выберите reference —</option>
                 {% for filename, display in reference_list %}
@@ -88,19 +125,14 @@
                 </option>
                 {% endfor %}
             </select>
-
-            <label>Или загрузите новый (поддерживаются MP3, WAV, OGG, FLAC, M4A и др.):</label><br>
+            <label>Или загрузите новый:</label><br>
             <input type="file" name="new_reference" accept="audio/*"><br>
-            <div class="hint">
-                Любой аудиофайл будет автоматически конвертирован в подходящий формат.
-            </div>
+            <div class="hint">Поддерживаются MP3, WAV, OGG, FLAC, M4A и др.</div>
         </fieldset>
 
-        <!-- Текст -->
         <label>Текст для озвучки:</label><br>
-        <textarea name="text" placeholder="Введите текст на русском языке..."></textarea>
+        <textarea name="text" placeholder="Введите текст на русском..."></textarea>
         <br><br>
-
         <button type="submit">Сгенерировать речь</button>
     </form>
 
@@ -113,9 +145,51 @@
         <strong>Результат:</strong><br>
         <audio controls>
             <source src="{{ url_for('main.serve_audio', filename=output_file) }}" type="audio/wav">
-            Ваш браузер не поддерживает воспроизведение аудио.
         </audio>
     </div>
     {% endif %}
+
+    <script>
+        function renameReference(filename) {
+            document.getElementById(`rename-form-${filename}`).style.display = 'block';
+        }
+        function hideRenameForm(filename) {
+            document.getElementById(`rename-form-${filename}`).style.display = 'none';
+        }
+        function doRename(filename) {
+            const newNameBase = document.getElementById(`new-name-${filename}`).value.trim();
+            if (!newNameBase) return alert("Имя не может быть пустым");
+            fetch('/api/reference/rename', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_name: filename, new_name: newNameBase })
+            }).then(r => r.json()).then(data => {
+                if (data.error) alert('Ошибка: ' + data.error);
+                else location.reload();
+            });
+        }
+
+        function updateReference(filename) {
+            document.getElementById(`update-form-${filename}`).style.display = 'block';
+        }
+        function hideUpdateForm(filename) {
+            document.getElementById(`update-form-${filename}`).style.display = 'none';
+        }
+        function doUpdate(filename) {
+            const fileInput = document.getElementById(`update-file-${filename}`);
+            const file = fileInput.files[0];
+            if (!file) return alert("Выберите файл");
+            const formData = new FormData();
+            formData.append('ref_name', filename);
+            formData.append('new_file', file);
+            fetch('/api/reference/update', {
+                method: 'POST',
+                body: formData
+            }).then(r => r.json()).then(data => {
+                if (data.error) alert('Ошибка: ' + data.error);
+                else { alert('Файл обновлён!'); location.reload(); }
+            });
+        }
+    </script>
 </body>
 </html>
