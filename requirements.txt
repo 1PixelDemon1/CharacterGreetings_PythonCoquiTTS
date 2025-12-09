@@ -1,8 +1,6 @@
+TTS>=0.22.0
 torch==2.5.1
 torchaudio==2.5.1
-torchvision==0.20.1
 transformers==4.33.0
-TTS>=0.22.0
-Flask==3.0.3
-Werkzeug==3.0.4
 pydub==0.25.1
+nltk==3.7
