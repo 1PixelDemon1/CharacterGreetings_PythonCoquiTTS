@@ -4,3 +4,4 @@ torchaudio==2.5.1
 transformers==4.33.0
 pydub==0.25.1
 nltk==3.7
+moviepy>=1.0.3

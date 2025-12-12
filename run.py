@@ -1,21 +1,23 @@
 from app.tts_generator import generate_speech
+from app.video_mixer import mix_video_with_audio
 
-# Загрузка reference
-with open("my_voice1.mp3", "rb") as f:
+# Генерация TTS
+with open("my_voice.mp3", "rb") as f:
     ref = f.read()
+tts_audio = generate_speech("Привет! Я говорю поверх фоновой музыки.", ref)
 
-# Длинный текст
-text = """
-С днём рождения! Желаю тебе ярких впечатлений, веселых приключений и много радостных моментов! Пусть каждый день будет полон сюрпризов и новых открытий, а все твои мечты сбываются. Помни, что ты – волшебник своей жизни, и у тебя все получится!
-"""
+# Загрузка видео
+with open("Test_65s.mp4", "rb") as f:
+    video = f.read()
 
-# Генерация
-audio = generate_speech(
-    text=text,
-    reference_audio_bytes=ref,
-    input_format="mp3"
+# Получение итогового видео в байтах
+video_bytes = mix_video_with_audio(
+    video_bytes=video,
+    tts_audio_bytes=tts_audio,
+    fade_duration=0.8,
+    tts_volume_boost_db=3.0
 )
 
-# Сохранение
-with open("output.wav", "wb") as f:
-    f.write(audio)
+# Сохранение (опционально)
+with open("result.mp4", "wb") as f:
+    f.write(video_bytes)
